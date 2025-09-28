@@ -8,12 +8,13 @@ load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
-response = client.models.generate_content(
-    model="gemini-2.0-flash-001", contents="Capital of france, give concise answer."
-)
+# Take prompt from user
+prompt = input("Enter your prompt: ")
+
+response = client.models.generate_content(model="gemini-2.0-flash-001", contents=prompt)
 
 # Print the generated text
-print("Response:\n", response.text)
+print("\nResponse:\n", response.text)
 
 # Print token usage metadata
 usage = response.usage_metadata
