@@ -24,7 +24,7 @@ if usage_mode:
     print("[Usage Tracking Enabled]")
 
 while True:
-    user_prompt = input("\Rameez: ")
+    user_prompt = input("Rameez: ")
     if user_prompt.lower() in ["exit", "quit"]:
         print("Ending chat.")
         break
