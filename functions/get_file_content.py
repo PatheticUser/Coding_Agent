@@ -41,19 +41,6 @@ def get_file_content(working_directory, file_path):
 
 WORKING_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
 
-tests = [
-    ("lorem.txt", "Truncation check"),
-    ("main.py", "Valid file in root"),
-    ("pkg/calculator.py", "Valid file in subdir"),
-    ("/bin/cat", "Outside directory (should error)"),
-    ("pkg/does_not_exist.py", "Non-existent file (should error)"),
-]
-
-for path, desc in tests:
-    print(f"\n--- {desc} ({path}) ---")
-    result = get_file_content(WORKING_DIR, path)
-    print(result[:300] + "..." if len(result) > 300 else result)
-
 
 # --- Gemini / LLM Function Schema ---
 def make_function_schema(name, description, params):

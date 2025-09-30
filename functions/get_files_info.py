@@ -97,12 +97,3 @@ schema_get_files_info = make_function_schema(
         },
     },
 )
-
-# Example usage
-if __name__ == "__main__":
-    result = get_files_info(
-        r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator",
-        ".",
-        verbose=True,
-    )
-    print(result)
