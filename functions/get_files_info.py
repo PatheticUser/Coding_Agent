@@ -106,22 +106,3 @@ if __name__ == "__main__":
         verbose=True,
     )
     print(result)
-    
-""" ---------Tests---------
-if __name__ == "__main__":
-    BASE_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
-
-    tests = [
-        (BASE_DIR, "."),                       # ✅ should work fine (current dir)
-        (BASE_DIR, "pkg"),                     # ✅ if "pkg" exists, should list files
-        (BASE_DIR, ".."),                      # ❌ outside working dir → should error
-        (BASE_DIR, "nonexistent_folder"),      # ❌ doesn’t exist → should error
-        (BASE_DIR, __file__),                  # ❌ path to file → not a dir → should error
-    ]
-
-    for wd, subdir in tests:
-        print(f"\n--- Testing directory: {subdir} ---")
-        result = get_files_info(wd, subdir, verbose=True)
-        print("Result:", result)
-"""
-

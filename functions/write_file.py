@@ -70,19 +70,3 @@ schema_write_file = make_function_schema(
         },
     },
 )
-
-
-# --- Example tests ---
-if __name__ == "__main__":
-    WORKING_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
-
-    tests = [
-        ("lorem.txt", "wait, this isn't lorem ipsum"),
-        ("pkg/morelorem.txt", "lorem ipsum dolor sit amet"),
-        ("/tmp/temp.txt", "this should not be allowed"),
-    ]
-
-    for file_path, content in tests:
-        print(f"\n--- Writing to {file_path} ---")
-        result = write_file(WORKING_DIR, file_path, content)
-        print(result)
