@@ -1,11 +1,9 @@
-# tests.py
-
 import unittest
 from pkg.calculator import Calculator
 
 
 class TestCalculator(unittest.TestCase):
-    def setUp(self):
+    def setUp(self): 
         self.calculator = Calculator()
 
     def test_addition(self):
@@ -44,6 +42,16 @@ class TestCalculator(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.calculator.evaluate("+ 3")
 
+    def test_division_by_zero(self):
+        with self.assertRaises(ValueError):  # Assuming evaluate raises ValueError for division by zero
+            self.calculator.evaluate("10 / 0")
 
-# if __name__ == "__main__":
-# unittest.main()
+    def test_parentheses(self):
+        result = self.calculator.evaluate("(3 + 5) * 2")
+        self.assertEqual(result, 16)
+
+
+if __name__ == "__main__":
+    unittest.main()
+    print("Tests passed")
+# everything worked fine
