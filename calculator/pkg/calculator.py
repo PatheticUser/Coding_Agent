@@ -1,5 +1,7 @@
 # calculator.py
 
+import json
+import math # Import the math module
 
 class Calculator:
     def __init__(self):
@@ -17,6 +19,14 @@ class Calculator:
             "*": 2,
             "/": 2,
             "(": 0,  # Parentheses have the lowest precedence on the stack
+            "sin": 3, # Higher precedence for functions
+            "cos": 3,
+            "tan": 3,
+        }
+        self.functions = { # New dictionary for scientific functions
+            "sin": math.sin,
+            "cos": math.cos,
+            "tan": math.tan,
         }
 
     def _divide(self, a, b):
@@ -36,9 +46,10 @@ class Calculator:
         # It separates numbers, operators, and parentheses
         import re
 
+        # Updated regex to also capture scientific function names
         return [
             token
-            for token in re.findall(r"(\d+\.?\d*|\S)", expression)
+            for token in re.findall(r"(\d+\.?\d*|[a-zA-Z]+|\S)", expression)
             if token.strip()
         ]
 
@@ -64,6 +75,8 @@ class Calculator:
                 ):
                     self._apply_operator(operators, values)
                 operators.append(token)
+            elif token in self.functions: # Handle scientific functions
+                operators.append(token)
             else:
                 try:
                     values.append(float(token))
@@ -85,9 +98,17 @@ class Calculator:
             return
 
         operator = operators.pop()
-        if len(values) < 2:
-            raise ValueError(f"not enough operands for operator {operator}")
 
-        b = values.pop()
-        a = values.pop()
-        values.append(self.operators[operator](a, b))
+        if operator in self.operators:
+            if len(values) < 2:
+                raise ValueError(f"not enough operands for operator {operator}")
+            b = values.pop()
+            a = values.pop()
+            values.append(self.operators[operator](a, b))
+        elif operator in self.functions: # Apply scientific function
+            if len(values) < 1:
+                raise ValueError(f"not enough operands for function {operator}")
+            operand = values.pop()
+            # Functions like sin, cos, tan usually operate on degrees, so convert if needed
+            # Assuming input is in degrees for sin(90) example, otherwise use math.radians
+            values.append(self.functions[operator](math.radians(operand)))

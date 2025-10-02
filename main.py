@@ -1,9 +1,9 @@
 import os
 import sys
+import json
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-
 from functions.get_files_info import get_files_info, schema_get_files_info
 from functions.get_file_content import get_file_content, schema_get_file_content
 from functions.write_file import write_file, schema_write_file
@@ -38,6 +38,35 @@ WORKING_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
 if verbose_mode:
     print(f"[Working Directory: {WORKING_DIR}]")
 
+# Load project metadata once at startup
+try:
+    with open(
+        os.path.join(WORKING_DIR, "project_description.json"), "r", encoding="utf-8"
+    ) as f:
+        PROJECT_METADATA = json.load(f)
+except FileNotFoundError:
+    print(
+        f"Error: project_description.json not found in {WORKING_DIR}. File access control may be incomplete."
+    )
+    PROJECT_METADATA = {"key_files": {}}
+
+KEY_FILES = list(PROJECT_METADATA["key_files"].keys())
+
+# Define the content to inject into the start of the conversation
+PROJECT_SUMMARY_MESSAGE = types.Content(
+    role="user",
+    parts=[
+        types.Part(text=f"Project Metadata: {json.dumps(PROJECT_METADATA, indent=2)}")
+    ],
+)
+
+
+def is_file_allowed(file_path: str) -> bool:
+    """Ensure file path is in project metadata key_files."""
+    # Check if the file_path matches any of the relative paths in KEY_FILES
+    return any(file_path == kf for kf in KEY_FILES)
+
+
 # System prompt (The instruction set for the model)
 system_prompt = """
 You are an expert AI assistant operating in a closed, local coding environment. Your singular goal is to efficiently and reliably complete the user's software development and file-related requests.
@@ -46,10 +75,10 @@ You are an expert AI assistant operating in a closed, local coding environment. 
 
 You must adhere to a strict Chain of Thought (CoT) workflow to ensure strategic execution. Your protocol is now informed by the project's metadata:
 
-1.  **DISCOVERY (Initial Step)**: First, check for and read the **project_description.json** file. Use the **project_summary**, **key_files**, and **debug_notes** to understand the project's architecture and the goal of the user's request.
-2.  **ANALYZE & PLAN (CoT)**: Based on the user's request and the project metadata, generate a clear, step-by-step **Function Call Plan**. This plan MUST specify the exact file(s) identified by the metadata that need reading or modifying.
-3.  **EXECUTE**: Perform the next single function call from your plan.
-4.  **REPORT**: Present the results. If the task is complete, summarize the final outcome and confirm that testing (if applicable) was successful. If the task is ongoing, present the updated plan and ask for confirmation to proceed.
+1.  **DISCOVERY (Initial Step)**: First, check for and read the **project_description.json** file. Use the **project_summary**, **key_files**, and **debug_notes** to understand the project's architecture and the goal of the user's request.
+2.  **ANALYZE & PLAN (CoT)**: Based on the user's request and the project metadata, generate a clear, step-by-step **Function Call Plan**. This plan MUST specify the exact file(s) identified by the metadata that need reading or modifying.
+3.  **EXECUTE**: Perform the next single function call from your plan.
+4.  **REPORT**: Present the results. If the task is complete, summarize the final outcome and confirm that testing (if applicable) was successful. If the task is ongoing, present the updated plan and ask for confirmation to proceed.
 
 Self-Correction: If a function's output (like a traceback from `run_python_file` or unexpected file content) contradicts your plan or the project metadata, immediately update your plan before proceeding.
 
@@ -92,13 +121,20 @@ if usage_mode:
     print("[Usage Tracking Enabled]")
 
 while True:
-    user_prompt = input("Rameez: ")
+    user_prompt = input("\nRameez:\n")
     if user_prompt.lower() in ["exit", "quit"]:
         print("Ending chat.")
         break
 
     # Improvement: Append the new user message to the existing history
     messages.append(types.Content(role="user", parts=[types.Part(text=user_prompt)]))
+
+    # --- Inject Project Metadata on the FIRST turn only ---
+    # The message history will only have the user's prompt (length 1) on the first turn
+    if len(messages) == 1:
+        # Insert the PROJECT_SUMMARY_MESSAGE as a system message at the start (index 0)
+        messages.insert(0, PROJECT_SUMMARY_MESSAGE)
+        print("[Injected Project Metadata into chat history as system message.]")
 
     # --- Agentic Loop (max 20 steps) ---
     for step in range(20):
@@ -117,12 +153,13 @@ while True:
             print(f"Error generating content: {e}")
             # Improvement: Remove the last user message to allow retry on next loop
             messages.pop()
+            # If the injected message is still there (i.e., this was the first turn), remove it too
+            if len(messages) > 0 and messages[0].role == "user":
+                messages.pop(0)
             break
 
         # 1. Add model's reasoning/thoughts (content) to history
-        # This includes the plan and any final text response
         if response.candidates and response.candidates[0].content:
-            # The model's *actual* content (including the plan) must have the role 'model'
             messages.append(response.candidates[0].content)
 
         # 2. Handle tool calls
@@ -132,15 +169,35 @@ while True:
                 func_name = fc.name
                 func_args = dict(fc.args)
 
-                print(f" - Calling function: {func_name}({func_args})")
+                # --- File Access Control Logic ---
+                # Check file arguments for write_file, get_file_content, delete_file, run_python_file
+                if func_name in [
+                    "write_file",
+                    "get_file_content",
+                    "delete_file",
+                    "run_python_file",
+                ]:
+                    file_path = func_args.get("file_path")
+                    if file_path and not is_file_allowed(file_path):
+                        result = f"SECURITY ERROR: Operation on file_path '{file_path}' is not permitted. File must be listed in 'key_files' in project_description.json."
+                        print(f" - Function result: {result}")
 
-                # Extract the relative path, which is assumed to be the first argument
-                # The agent is instructed to use relative paths, but the Python wrapper
-                # is responsible for joining it with the WORKING_DIR for security.
+                        # Skip the actual function call and report the security error
+                        messages.append(
+                            types.Content(
+                                role="user",
+                                parts=[
+                                    types.Part(text=f"Function call result: {result}")
+                                ],
+                            )
+                        )
+                        continue  # Move to the next function call or loop step
+                # --- End File Access Control Logic ---
+
+                print(f" - Calling function: {func_name}({func_args})")
 
                 try:
                     if func_name == "get_files_info":
-                        # For get_files_info, we pass the WORKING_DIR and let the function figure out the path
                         result = get_files_info(WORKING_DIR, **func_args)
                     elif func_name == "get_file_content":
                         result = get_file_content(WORKING_DIR, **func_args)
@@ -162,7 +219,6 @@ while True:
                 print(f" - Function result: {result}")
 
                 # 3. Feedback to agent (so it knows tool outcome)
-                # The result of a function call is treated as observation/feedback, so the role is 'user'
                 messages.append(
                     types.Content(
                         role="user",
@@ -173,7 +229,6 @@ while True:
         # 4. If final text output exists, finish loop
         elif response.text:
             print("\nCodeForge:\n", response.text)
-            # The model's final text response is ALREADY added to history in step 1.
             break
 
         # Check for max steps
