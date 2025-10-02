@@ -1,0 +1,24 @@
+{
+    "project_name": "Calculator",
+    "version": "1.0",
+    "entry_point": "main.py",
+    "key_files": {
+        "main.py": "The top-level script that orchestrates the application. It handles CLI input, imports the Calculator logic, and uses the renderer to display the final result.",
+        "pkg/calculator.py": "Contains the core business logic. It defines the 'Calculator' class responsible for expression parsing and evaluation (including handling operator precedence).",
+        "pkg/render.py": "The utility module responsible for formatting the final calculation result into a structured JSON output.",
+        "pkg/tests.py": "Contains unit and integration test cases for validating the expression parser and the Calculator class logic. This file should be run to confirm bug fixes.",
+        "project_description.json": "This metadata file itself. Provides the agent with the project map, key files, and debug notes."
+    },
+    "available_tools": [
+        "get_files_info",
+        "get_file_content",
+        "write_file",
+        "run_python_file",
+        "delete_file"
+    ],
+    "debug_notes": {
+        "core_logic_location": "To fix calculation bugs, focus on the _evaluate_infix() method inside pkg/calculator.py.",
+        "output_formatting": "Changes to output structure (e.g., JSON schema) must be made in the format_json_output function in pkg/render.py.",
+        "validation_strategy": "All changes should be validated by running pkg/tests.py using run_python_file."
+    }
+}

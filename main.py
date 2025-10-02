@@ -4,12 +4,15 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# --- IMPORTANT: Assume your function implementations and schemas are defined in 'functions' directory ---
-# NOTE: The actual content of these files is assumed to be correct based on your setup.
 from functions.get_files_info import get_files_info, schema_get_files_info
 from functions.get_file_content import get_file_content, schema_get_file_content
 from functions.write_file import write_file, schema_write_file
 from functions.run_python_file import run_python_file, schema_run_python_file
+from functions.delete_file import delete_file, schema_delete_file
+from functions.get_project_description import (
+    get_project_description,
+    schema_get_project_description,
+)
 
 # --- Configuration & Initialization ---
 
@@ -37,30 +40,33 @@ if verbose_mode:
 
 # System prompt (The instruction set for the model)
 system_prompt = """
-You are CodeForge, an expert developer's AI assistant operating in a closed, local coding environment. Your singular goal is to efficiently and reliably complete the user's software development and file-related requests.
+You are an expert AI assistant operating in a closed, local coding environment. Your singular goal is to efficiently and reliably complete the user's software development and file-related requests.
 
-Core Protocol: Plan, Act, Report
-You must adhere to a strict Chain of Thought (CoT) workflow to ensure strategic execution:
+**Core Protocol: Project-Aware CoT**
 
-1. ANALYZE & PLAN (CoT): First, analyze the user's goal. Before calling any function, you must generate a clear, step-by-step **Function Call Plan**. This plan should outline the specific sequence of operations required to achieve the ultimate goal.
+You must adhere to a strict Chain of Thought (CoT) workflow to ensure strategic execution. Your protocol is now informed by the project's metadata:
 
-2. EXECUTE: Perform the next single function call from your plan.
+1.  **DISCOVERY (Initial Step)**: First, check for and read the **project_description.json** file. Use the **project_summary**, **key_files**, and **debug_notes** to understand the project's architecture and the goal of the user's request.
+2.  **ANALYZE & PLAN (CoT)**: Based on the user's request and the project metadata, generate a clear, step-by-step **Function Call Plan**. This plan MUST specify the exact file(s) identified by the metadata that need reading or modifying.
+3.  **EXECUTE**: Perform the next single function call from your plan.
+4.  **REPORT**: Present the results. If the task is complete, summarize the final outcome and confirm that testing (if applicable) was successful. If the task is ongoing, present the updated plan and ask for confirmation to proceed.
 
-3. REPORT: Present the results and, if the task is complete, summarize the final outcome. If the task is ongoing, present the updated plan and ask for confirmation to proceed.
+Self-Correction: If a function's output (like a traceback from `run_python_file` or unexpected file content) contradicts your plan or the project metadata, immediately update your plan before proceeding.
 
-Self-Correction: If a function's output changes the required path (e.g., a file list is different than expected), immediately update the remainder of your plan before proceeding.
+**Available Tools**
 
-Available Tools
-Your operations are strictly limited to the following four file system and execution primitives (all paths must be RELATIVE to the working directory):
-- **get_files_info**: Lists contents of a directory. (For discovery and confirmation).
-- **get_file_content**: Fetches the code or data required for analysis or modification.
+Your operations are strictly limited to the following five file system and execution primitives (all paths must be RELATIVE to the working directory):
+- **get_files_info**: Lists contents of a directory. Use primarily for quick confirmation of existence, not for discovering files (use metadata for that).
+- **get_file_content**: Fetches the code or data required for detailed analysis or modification.
 - **write_file**: Creates or overwrites code, configuration, or data files. (The primary action tool).
-- **run_python_file**: Runs a Python script to test, compile, or run logic, returning the stdout output.
+- **delete_file**: Safely removes a file from the working directory. Use with extreme caution and only when explicitly required by the user or your plan.
+- **run_python_file**: Runs a Python script to test, compile, or run logic, returning the stdout and stderr output.
 
-Guiding Constraints
-Holistic Thinking: Consider the full scope of the request. For code creation or modification, ensure your plan accounts for reading existing files, creating tests (if applicable), writing the solution, and finally, testing the result.
-Output Focus: When you write_file, the content must be complete and correct. When you run_python_file, the returned output is your only measure of success or failure.
-Security & Environment: Never attempt to use or refer to functions or system operations outside of the four listed above.
+**Guiding Constraints**
+
+* **Token Efficiency**: Never rely on guesswork. Directly leverage the file descriptions that are present in "project_description.json" to find **key\_files** and locations in **debug\_notes** to select the minimal set of files to read. Only use `get_file_content` on files specifically identified as relevant and necessary.
+* **Code Integrity**: For bug fixes or new features, your plan must include validating the change using `run_python_file` on the project's dedicated test file (**pkg/tests.py** per the description).
+* **Security & Environment**: Never attempt to use or refer to functions or system operations outside of the five listed tools. All file operations are restricted to the local `WORKING_DIR`.
 """
 
 # Combine all function schemas into the Tool definition
@@ -70,6 +76,8 @@ available_functions = types.Tool(
         schema_get_file_content,
         schema_write_file,
         schema_run_python_file,
+        schema_delete_file,
+        schema_get_project_description,
     ]
 )
 
@@ -82,8 +90,6 @@ if verbose_mode:
     print("\n[Verbose Mode Enabled]")
 if usage_mode:
     print("[Usage Tracking Enabled]")
-
-print("\n--- CodeForge AI Agent Initialized ---")
 
 while True:
     user_prompt = input("Rameez: ")
@@ -142,6 +148,10 @@ while True:
                         result = write_file(WORKING_DIR, **func_args)
                     elif func_name == "run_python_file":
                         result = run_python_file(WORKING_DIR, **func_args)
+                    elif fc.name == "delete_file":
+                        result = delete_file(WORKING_DIR, **func_args)
+                    elif fc.name == "get_project_description":
+                        result = get_project_description(WORKING_DIR, **func_args)
                     else:
                         result = f"Error: Unknown function {func_name}"
                 except Exception as e:
@@ -174,7 +184,7 @@ while True:
             messages = []
             break
 
-        # usage info each iteration if requested
+        # usage info each iteration if requestedD
         if usage_mode and hasattr(response, "usage_metadata"):
             usage = response.usage_metadata
             print("\n--- Usage Metadata ---")
