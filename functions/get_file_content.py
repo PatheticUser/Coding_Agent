@@ -39,7 +39,7 @@ def get_file_content(working_directory, file_path):
         return f"Error: {e}"
 
 
-WORKING_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
+WORKING_DIR = r"C:\Users\Muhammad Rameez\Documents\CodeCrafter\calculator"
 
 
 # --- Gemini / LLM Function Schema ---

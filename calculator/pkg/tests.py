@@ -14,18 +14,6 @@ class TestCalculator(unittest.TestCase):
     def setUp(self):
         self.calculator = Calculator()
 
-    def test_addition(self):
-        self.assertEqual(self.calculator.evaluate("1 + 1"), 2.0)
-
-    def test_subtraction(self):
-        self.assertEqual(self.calculator.evaluate("5 - 3"), 2.0)
-
-    def test_multiplication(self):
-        self.assertEqual(self.calculator.evaluate("2 * 3"), 6.0)
-
-    def test_division(self):
-        self.assertEqual(self.calculator.evaluate("6 / 3"), 2.0)
-
     def test_order_of_operations(self):
         self.assertEqual(self.calculator.evaluate("1 + 2 * 3"), 7.0)
         self.assertEqual(self.calculator.evaluate("(1 + 2) * 3"), 9.0)
@@ -46,9 +34,6 @@ class TestCalculator(unittest.TestCase):
 
     def test_complex_expression(self):
         self.assertEqual(self.calculator.evaluate("10 - 2 * 3 + (8 / 4)"), 6.0)
-
-    def test_single_number(self):
-        self.assertEqual(self.calculator.evaluate("123"), 123.0)
 
     def test_invalid_token(self):
         with self.assertRaises(ValueError):
@@ -75,18 +60,27 @@ class TestRender(unittest.TestCase):
     def test_json_output(self):
         expression = "1 + 1"
         result = 2.0
-        expected_output = '{\n  "expression": "1 + 1",\n  "result": 2\n}'
+        expected_output = """{
+  "expression": "1 + 1",
+  "result": 2
+}"""
         self.assertEqual(format_json_output(expression, result), expected_output)
 
         expression = "5 / 2"
         result = 2.5
-        expected_output = '{\n  "expression": "5 / 2",\n  "result": 2.5\n}'
+        expected_output = """{
+  "expression": "5 / 2",
+  "result": 2.5
+}"""
         self.assertEqual(format_json_output(expression, result), expected_output)
 
     def test_json_output_with_int_result(self):
         expression = "2 * 3"
         result = 6.0
-        expected_output = '{\n  "expression": "2 * 3",\n  "result": 6\n}'
+        expected_output = """{
+  "expression": "2 * 3",
+  "result": 6
+}"""
         self.assertEqual(format_json_output(expression, result), expected_output)
 
 

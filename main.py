@@ -37,7 +37,7 @@ verbose_mode = "--verbose" in args
 # usage_mode is now implicitly controlled by verbose_mode for cleaner UI separation
 
 # Hardcoded working directory (Ensure this is correct and accessible!)
-WORKING_DIR = r"C:\Users\Ash\Downloads\Coding Agent\Coding_Agent\calculator"
+WORKING_DIR = r"C:\Users\Muhammad Rameez\Documents\CodeCrafter\calculator"
 if verbose_mode:
     print(f"Working Directory: {WORKING_DIR}")
 
@@ -104,7 +104,8 @@ Your operations are strictly limited to the following file system and execution 
 
 **Guiding Constraints**
 
-* **Token Efficiency**: Never rely on guesswork. Directly leverage the file descriptions that are present in "project_description.json" to find **key\_files** and locations in **debug\_notes** to select the minimal set of files to read. Only use `get_file_content` on files specifically identified as relevant and necessary.
+* **Token Efficiency**: Never rely on guesswork. Directly leverage the file descriptions that are present in "project_description.json" to find "key\\_files"
+and locations in "debug\\_notes" to select the minimal set of files to read. Only use `get_file_content` on files specifically identified as relevant and necessary.
 * **Code Integrity**: For bug fixes or new features, your plan must include validating the change using `run_python_file` on the project's dedicated test file (**pkg/tests.py** per the description).
 * **Security & Environment**: Never attempt to use or refer to functions or system operations outside of the listed tools. All file operations are restricted to the local `WORKING_DIR`.
 * dont use bold, italic or any other markdown in your responses
